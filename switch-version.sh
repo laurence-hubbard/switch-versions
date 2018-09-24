@@ -138,6 +138,10 @@ if [ "$WHICH_OS" == "macOS" ] && [ "$WHICH_BITS" == "64-bit" ]; then
 	OS="darwin"
 	BITS="amd64"
 	log "Installing packer $VERSION for $OS $BITS"
+elif [ "$WHICH_OS" == "Linux" ] && [ "$WHICH_BITS" == "64-bit" ]; then
+	OS="linux"
+        BITS="amd64"
+        log "Installing packer $VERSION for $OS $BITS"
 else
 	error "OS $WHICH_OS with type $WHICH_BITS is not currently supported for packer"
 fi
