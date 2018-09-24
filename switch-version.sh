@@ -88,10 +88,30 @@ log "Setting up $APP_NAME"
 sudo mkdir -p "/var/lib/$APP_NAME/$APP/"
 }
 
+recommend_os_and_type(){
+
+OS="$(uname)"
+OS_TYPE=$(getconf LONG_BIT)
+
+if [ "$OS" == "Darwin" ]; then
+	log "Recommended OS option for you is: macOS"
+elif [ "$OS" == "Linux" ]; then
+	log "Recommended OS option for you is: Linux"
+fi
+
+if [ $OS_TYPE -eq 64 ]; then
+	log "Recommended OS type option for you is: 64-bit"
+elif [ $OS_TYPE -eq 32 ]; then
+	log "Recommended OS type option for you is: 32-bit"
+fi
+
+}
+
 switch_packer(){
 VERSION="$1"
 log "Switching packer to version $VERSION"
 setup packer
+recommend_os_and_type
 
 DESIRED_INSTALL_LOCATION="/usr/local/bin/packer"
 
@@ -195,6 +215,7 @@ elif [ $# -eq 1 ]; then
 elif [ $# -eq 2 ]; then
 	switch "$1" "$2"
 fi
+
 
 # TO-DO
 # Ability to switch between versions of terraform
