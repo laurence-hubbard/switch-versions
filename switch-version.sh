@@ -50,6 +50,7 @@ exit 1
 versions_packer() {
 
 CURRENT_VERSION="$(packer --version 2>/dev/null)"
+which packer
 CURRENTLY_INSTALLED=$?
 
 if [ $CURRENTLY_INSTALLED -eq 0 ]; then
