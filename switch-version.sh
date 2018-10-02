@@ -2,7 +2,7 @@
 
 APP_NAME=$(basename $0)
 
-APPS=( "packer" )
+APPS=( "packer" "jq" )
 
 log(){
 
@@ -50,7 +50,7 @@ exit 1
 versions_packer() {
 
 CURRENT_VERSION="$(packer --version 2>/dev/null)"
-which packer
+which packer 1>/dev/null
 CURRENTLY_INSTALLED=$?
 
 if [ $CURRENTLY_INSTALLED -eq 0 ]; then
@@ -70,6 +70,29 @@ fi
 
 }
 
+versions_jq() {
+
+CURRENT_VERSION="$(jq --version 2>/dev/null)"
+which jq 1>/dev/null
+CURRENTLY_INSTALLED=$?
+
+if [ $CURRENTLY_INSTALLED -eq 0 ]; then
+	log "Currently installed jq version is: $CURRENT_VERSION"
+else
+	log "jq is not currently installed"
+fi
+
+LATEST_VERSION="jq-1.5" # Hard-coded for now. Possible dynamic solution is to use GitHub API to retrieve repo tags.
+LATEST_VERSION_AVAILABLE=$?
+
+if [ $LATEST_VERSION_AVAILABLE -eq 0 ]; then
+        log "Latest jq version is: $LATEST_VERSION"
+else
+        error "jq is not currently available for switching -- https://github.com/stedolan may be down"
+fi
+
+}
+
 versions() {
 
 APP="$1"
@@ -77,6 +100,9 @@ APP="$1"
 if [ "$APP" == "packer" ]; then
         versions_packer
 	exit 0
+elif [ "$APP" == "jq" ]; then
+        versions_jq
+        exit 0
 else
         error "NotImplementedYet" "Switch functionality for $APP not yet available"
 fi
@@ -104,6 +130,118 @@ if [ $OS_TYPE -eq 64 ]; then
 	log "Recommended OS type option for you is: 64-bit"
 elif [ $OS_TYPE -eq 32 ]; then
 	log "Recommended OS type option for you is: 32-bit"
+fi
+
+}
+
+switch_jq(){
+VERSION="$1"
+log "Switching jq to version $VERSION"
+setup jq
+recommend_os_and_type
+
+DESIRED_INSTALL_LOCATION="/usr/local/bin/jq"
+
+log "**INTERACTIVE** Which OS? Options are:
+macOS
+FreeBSD
+Linux
+OpenBSD
+Solaris
+Windows
+"
+read WHICH_OS
+
+log "**INTERACTIVE** What OS type? Options are:
+32-bit
+64-bit
+Arm
+Arm64
+Ppc64le
+"
+read WHICH_BITS
+
+if [ "$WHICH_OS" == "macOS" ] && [ "$WHICH_BITS" == "64-bit" ]; then
+	OS="osx"
+        if [ "$VERSION" == "jq-1.5" ]; then
+		BITS="-amd64"
+	elif [ "$VERSION" == "jq-1.3" ]; then
+		BITS="-x86_64"
+	else
+		error "Version $VERSION not currently supported for switching for jq"
+	fi
+	log "Installing jq $VERSION for $OS $BITS"
+elif [ "$WHICH_OS" == "Linux" ] && [ "$WHICH_BITS" == "64-bit" ]; then
+	OS="linux"
+        if [ "$VERSION" == "jq-1.5" ]; then
+                BITS="64"
+        elif [ "$VERSION" == "jq-1.3" ]; then
+                BITS="-x86_64"
+        else
+                error "Version $VERSION not currently supported for switching for jq"
+        fi
+        log "Installing jq $VERSION for $OS $BITS"
+else
+	error "OS $WHICH_OS with type $WHICH_BITS is not currently supported for jq"
+fi
+
+log "Checking if jq is currently installed"
+CURRENT_INSTALL_LOCATION="$(which jq)"
+CURRENTLY_INSTALLED=$?
+
+if [ $CURRENTLY_INSTALLED -eq 0 ]; then
+	log "jq is currently installed at: $CURRENT_INSTALL_LOCATION"
+	CURRENT_VERSION="$(jq --version 2>/dev/null)"
+	log "moving current jq to an archive location in /var/lib/$APP_NAME/jq"
+	sudo mkdir -p "/var/lib/$APP_NAME/jq/archive/$OS/$BITS/$CURRENT_VERSION/"
+        if [ -f "/var/lib/$APP_NAME/jq/archive/$OS/$BITS/$CURRENT_VERSION/jq" ]; then
+		sudo mv "$CURRENT_INSTALL_LOCATION" "/var/lib/$APP_NAME/jq/archive/$OS/$BITS/$CURRENT_VERSION/jq.$(date +%F\ %T | sed "s/[- :]//g")"
+	else
+		sudo mv "$CURRENT_INSTALL_LOCATION" "/var/lib/$APP_NAME/jq/archive/$OS/$BITS/$CURRENT_VERSION/jq"
+	fi
+	log "Resetting bash path hash to confirm uninstall"
+	hash -r
+else
+        log "jq is not currently installed"
+fi
+
+log "Checking if jq version $VERSION is available in cache"
+if [ -f "/var/lib/$APP_NAME/jq/cache/$OS/$BITS/$VERSION/jq-$OS$BITS" ]; then
+	log "jq is available in cache. running symlinking to confirm"
+	sudo ln -s "/var/lib/$APP_NAME/jq/cache/$OS/$BITS/$VERSION/jq-$OS$BITS" "$DESIRED_INSTALL_LOCATION"
+else
+	log "jq is not available in cache. downloading"
+	sudo mkdir -p "/var/lib/$APP_NAME/jq/cache/$OS/$BITS/$VERSION/"
+	pushd "/var/lib/$APP_NAME/jq/cache/$OS/$BITS/$VERSION/"
+	sudo wget "https://github.com/stedolan/jq/releases/download/$VERSION/jq-$OS$BITS"
+	sudo chmod 755 "jq-$OS$BITS"
+	sudo ln -s "/var/lib/$APP_NAME/jq/cache/$OS/$BITS/$VERSION/jq-$OS$BITS" "$DESIRED_INSTALL_LOCATION"
+	popd
+fi
+
+log "Checking if jq was installed as expected"
+
+CURRENT_VERSION="$(jq --version 2>/dev/null)"
+CURRENTLY_INSTALLED=$?
+
+# Need to make this patch more resilient
+if [ "$VERSION" == "jq-1.3" ] && [ $CURRENTLY_INSTALLED -eq 0 ]; then
+        log "jq version $VERSION installed as expected"
+	return 0
+fi
+
+log "debug exit $CURRENTLY_INSTALLED, version $CURRENT_VERSION"
+
+if [ $CURRENTLY_INSTALLED -eq 0 ]; then
+        log "Currently installed jq version is: $CURRENT_VERSION"
+else
+        error "jq was not installed as expected - $APP_NAME has failed"
+fi
+
+if [ "$CURRENT_VERSION" == "$VERSION" ]; then
+        log "jq version $VERSION installed as expected"
+else
+	error "jq was not installed as expected - $APP_NAME has failed"
 fi
 
 }
@@ -207,6 +345,8 @@ VERSION="$2"
 
 if [ "$APP" == "packer" ]; then
         switch_packer "$VERSION"
+elif [ "$APP" == "jq" ]; then
+        switch_jq "$VERSION"
 else
         error "NotImplementedYet" "Switch functionality for $APP not yet available"
 fi

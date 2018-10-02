@@ -1,9 +1,10 @@
 # switch-versions
 Quick switching between different versions of binary sourced applications
 
-## Applications support is initially intended for:
-* packer
-* terraform
+## Applications supported:
+* packer (specific OS types only for now)
+* jq (specific OS types and versions only for now)
+* terraform (coming soon)
 
 ## How to run:
 * git clone https://github.com/laurence-hubbard/switch-versions.git
@@ -20,3 +21,10 @@ Quick switching between different versions of binary sourced applications
 
 ## You can check where a binary is installed using `where`:
 https://gist.github.com/laurence-hubbard/13ccb68c5b7225159e03bb85ffd52323
+
+## switch-versions TODO
+* Enable non-interactive OS and OS type selections
+* Dynamic selection of jq versions
+* Support for removing invalid binaries that are in scope PATH but not executable
+* Additional OS and OS type support
+* Generic functions and easy addition of new applications
