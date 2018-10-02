@@ -244,6 +244,8 @@ else
 	error "jq was not installed as expected - $APP_NAME has failed"
 fi
 
+log "Resetting hash"
+hash -r
 }
 
 switch_packer(){
