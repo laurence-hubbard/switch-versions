@@ -6,6 +6,10 @@ Quick switching between different versions of binary sourced applications
 * jq (specific OS types and versions only for now)
 * terraform (coming soon)
 
+## Prerequisites
+* realpath
+** brew install coreutils
+
 ## How to run:
 * git clone https://github.com/laurence-hubbard/switch-versions.git
 * cd switch-versions/
