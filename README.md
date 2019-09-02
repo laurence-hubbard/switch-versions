@@ -7,8 +7,7 @@ Quick switching between different versions of binary sourced applications
 * terraform (coming soon)
 
 ## Prerequisites
-* realpath
-** brew install coreutils
+* realpath (`brew install coreutils` on Mac)
 
 ## How to run:
 * git clone https://github.com/laurence-hubbard/switch-versions.git
